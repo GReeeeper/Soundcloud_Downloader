@@ -5,8 +5,10 @@ def fetch_tracks(url, limit):
     try:
         command = [
             "yt-dlp",
-            "--dump-json",
             "--no-progress",
+            "--flat-playlist",
+            "--print",
+            "%(webpage_url)s <|SEP|> %(title)s <|SEP|> %(uploader)s",
         ]
         if limit is not None:
             command.extend(["--playlist-items", f"1-{limit}"])
@@ -22,8 +24,22 @@ def fetch_tracks(url, limit):
         tracks = []
         for line in result.stdout.strip().split('\n'):
             if line:
-                track_info = json.loads(line)
-                tracks.append({"url": track_info.get("webpage_url"), "title": track_info.get("title"), "artist": track_info.get("artist") or track_info.get("uploader") or "Unknown Artist"})
+                parts = line.split(' <|SEP|> ')
+                if len(parts) == 3:
+                    url_val, title, artist = parts
+                    
+                    # Fallback: Extract metadata from URL if yt-dlp returns NA
+                    if (title == "NA" or artist == "NA") and url_val != "NA":
+                        try:
+                            # Clean URL and extract parts: soundcloud.com/artist/title-slug
+                            clean_url = url_val.split('?')[0].strip('/')
+                            url_parts = clean_url.split('/')
+                            if len(url_parts) >= 2:
+                                if title == "NA": title = url_parts[-1].replace('-', ' ').title()
+                                if artist == "NA": artist = url_parts[-2].replace('-', ' ').title()
+                        except Exception: pass
+
+                    tracks.append({"url": url_val, "title": title, "artist": artist if artist != "NA" else "Unknown Artist"})
         return tracks
     except FileNotFoundError:
         print("yt-dlp not found, trying with scdl...")

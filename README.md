@@ -26,7 +26,7 @@ SC DL RESCUE is a command-line interface tool designed to easily download audio 
 2.  **Install dependencies:**
     This project requires Python 3. Install the necessary packages:
     ```bash
-    pip install questionary tqdm scdl yt-dlp
+    pip install -r requirements.txt
     ```
     *(Note: `scdl` and `yt-dlp` must be installed and accessible in your system PATH).*
 

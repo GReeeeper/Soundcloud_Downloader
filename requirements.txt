@@ -1,7 +1,4 @@
-scdl==3.0.0
-tqdm
-docopt-ng==0.9.0
-mutagen==1.47.0
-yt-dlp==2025.12.8
-dacite==1.9.2
 questionary
+tqdm
+scdl
+yt-dlp

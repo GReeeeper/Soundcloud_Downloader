@@ -3,3 +3,4 @@ downloads/
 *.pyc
 .DS_Store
 .env
+download_history.txt

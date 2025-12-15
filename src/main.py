@@ -25,6 +25,21 @@ def display_logo():
     """
     print(logo)
     print("Welcome to SC DL Rescue CLI Audio Downloader!\n")
+
+HISTORY_FILE = "download_history.txt"
+
+def get_history():
+    if not os.path.exists(HISTORY_FILE):
+        return []
+    with open(HISTORY_FILE, "r") as f:
+        return [line.strip() for line in f if line.strip()]
+
+def add_to_history(url):
+    history = get_history()
+    if url not in history:
+        with open(HISTORY_FILE, "a") as f:
+            f.write(url + "\n")
+
 def main():
     clear_console() 
 
@@ -33,22 +48,33 @@ def main():
 
         url = None
         while not url:
-            entered_url = questionary.text("Enter the SoundCloud URL (track, playlist, or user, or 'q' to quit):").ask()
-            if entered_url and entered_url.lower() == 'q':
+            history = get_history()
+            choices = ["Enter new URL"]
+            if history:
+                choices.append("Select from History")
+            choices.append("Quit")
+
+            action = questionary.select("Choose an option:", choices=choices).ask()
+
+            if action == "Quit":
                 print("Exiting application.")
                 return
 
-            if not entered_url:
-                print("URL cannot be empty. Please try again.")
-                continue
+            entered_url = None
+            if action == "Enter new URL":
+                entered_url = questionary.text("Enter the SoundCloud URL:").ask()
+            elif action == "Select from History":
+                entered_url = questionary.select("Select a URL:", choices=list(reversed(history))).ask()
 
-            print("Validating URL...")
-            fetched_info = fetch_tracks(entered_url, limit=1) 
-            if fetched_info:
-                url = entered_url
-                print("URL validated successfully.")
-            else:
-                print("Invalid or un-fetchable URL. Please check the URL and try again.")
+            if entered_url:
+                print("Validating URL...")
+                fetched_info = fetch_tracks(entered_url, limit=1) 
+                if fetched_info:
+                    url = entered_url
+                    add_to_history(url)
+                    print("URL validated successfully.")
+                else:
+                    print("Invalid or un-fetchable URL. Please check the URL and try again.")
 
         download_format = questionary.select(
             "Select download format:",
@@ -93,8 +119,19 @@ def main():
             except ValueError:
                 print("Invalid limit, defaulting to unlimited.")
                 limit = None 
+
+        threads_input = questionary.text(
+            "Enter number of parallel downloads (default 5):",
+            default="5"
+        ).ask()
+        max_workers = 5
+        if threads_input:
+            try:
+                max_workers = int(threads_input)
+            except ValueError:
+                print("Invalid number, defaulting to 5.")
         
-        downloader = Downloader(url, download_format, download_dir, track_range, limit)
+        downloader = Downloader(url, download_format, download_dir, track_range, limit, max_workers)
         try:
             downloader.download()
         except KeyboardInterrupt:
